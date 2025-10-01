@@ -31,6 +31,6 @@
 	</div>
 </div>
 
-<div class="flex flex-col items-center justify-center gap-2 p-4">
+<div class="flex flex-col items-center justify-center gap-2 p-4 w-full">
 	{@render children?.()}
 </div>

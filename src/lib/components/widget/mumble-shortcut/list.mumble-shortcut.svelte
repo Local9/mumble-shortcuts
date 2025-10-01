@@ -10,6 +10,8 @@
   import Loader2Icon from "@lucide/svelte/icons/loader-2";
   import { onMount } from "svelte";
   import { onDestroy } from "svelte";
+  import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
+  import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
 
   let mumbleShortcut = $state<Shortcut>({} as Shortcut);
   let mumbleShortcuts = $state<Shortcut[]>(shortcutState.shortcuts);
@@ -17,6 +19,7 @@
   let draggedId = $state<string | null>(null);
   let dragPreviewShortcuts = $state<Shortcut[] | null>(null);
   let open = $state(false);
+  let expandedPaths = $state<Record<string, boolean>>({});
 
   // Initialize once on mount to avoid reactive update loops
   onMount(() => {
@@ -144,35 +147,160 @@
     updateShortcuts(mumbleShortcuts as Shortcut[]);
     open = false;
   }
+
+  // -------- Tree building & flattening --------
+  type Leaf = { shortcut: Shortcut; label: string };
+  type TreeNode = { name: string; path: string; children: TreeNode[]; leaves: Leaf[] };
+  type Row = { kind: 'group'; name: string; path: string; depth: number } | { kind: 'leaf'; label: string; shortcut: Shortcut; depth: number };
+
+  function sanitizeAndTrimUrl(raw: string): string {
+    const trimmed = raw.trim().replace(/^@+/, "");
+    return trimmed;
+  }
+
+  function parseMumbleUrl(url: string): { host: string; segments: string[]; leafLabel: string } | null {
+    try {
+      const cleaned = sanitizeAndTrimUrl(url);
+      if (!cleaned.startsWith("mumble://")) return null;
+      const withoutScheme = cleaned.slice("mumble://".length);
+      const firstSlashIdx = withoutScheme.indexOf('/');
+      const host = firstSlashIdx === -1 ? withoutScheme : withoutScheme.slice(0, firstSlashIdx);
+      const pathPart = firstSlashIdx === -1 ? '' : withoutScheme.slice(firstSlashIdx + 1);
+      const rawSegments = pathPart.length ? pathPart.split('/') : [];
+      const decodedSegments = rawSegments
+        .filter((s) => s.length > 0)
+        .map((s) => s.split('?')[0])
+        .map((s) => decodeURIComponent(s));
+      const safeHost = decodeURIComponent(host);
+      if (decodedSegments.length === 0) {
+        return { host: safeHost, segments: [safeHost], leafLabel: safeHost };
+      }
+      const leafLabel = decodedSegments[decodedSegments.length - 1];
+      const segments = [safeHost, ...decodedSegments.slice(0, -1)];
+      return { host: safeHost, segments, leafLabel };
+    } catch {
+      return null;
+    }
+  }
+
+  function getOrCreateChild(parent: TreeNode, name: string, path: string): TreeNode {
+    const existing = parent.children.find((c) => c.name === name);
+    if (existing) return existing;
+    const node: TreeNode = { name, path, children: [], leaves: [] };
+    parent.children.push(node);
+    return node;
+  }
+
+  function buildTree(list: Shortcut[]): TreeNode {
+    const root: TreeNode = { name: 'root', path: '', children: [], leaves: [] };
+    for (const s of list) {
+      const parsed = parseMumbleUrl(s.mumbleUrl);
+      if (!parsed) continue;
+      const { segments, leafLabel } = parsed;
+      let current = root;
+      let currentPath = '';
+      for (const seg of segments) {
+        currentPath = currentPath ? `${currentPath}/${seg}` : seg;
+        current = getOrCreateChild(current, seg, currentPath);
+      }
+      current.leaves.push({ shortcut: s, label: leafLabel || s.shortcutName });
+    }
+    return root;
+  }
+
+  function isExpanded(path: string): boolean {
+    // Default to true for undefined paths; only explicit false collapses
+    return expandedPaths[path] !== false;
+  }
+
+  function pushVisibleRows(node: TreeNode, depth: number, rows: Row[]) {
+    if (node.path) {
+      rows.push({ kind: 'group', name: node.name, path: node.path, depth });
+    }
+    const expanded = node.path ? isExpanded(node.path) : true;
+    if (!expanded) return;
+
+    const childDepth = node.path ? depth + 1 : depth;
+
+    // List this group's leaves first (order asc if defined, then alphabetical)
+    const sortedLeaves = [...node.leaves].sort((a, b) => {
+      const aHas = typeof a.shortcut.order === 'number';
+      const bHas = typeof b.shortcut.order === 'number';
+      if (aHas && bHas) {
+        const cmp = (a.shortcut.order as number) - (b.shortcut.order as number);
+        if (cmp !== 0) return cmp;
+      } else if (aHas !== bHas) {
+        return aHas ? -1 : 1; // items with order come first
+      }
+      return a.label.localeCompare(b.label, undefined, { sensitivity: 'base' });
+    });
+    for (const leaf of sortedLeaves) {
+      rows.push({ kind: 'leaf', label: leaf.label, shortcut: leaf.shortcut, depth: childDepth });
+    }
+
+    // Then list child groups (alphabetically) and recurse
+    const sortedChildren = [...node.children].sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    for (const child of sortedChildren) {
+      pushVisibleRows(child, childDepth, rows);
+    }
+  }
+
+  function getVisibleRows(): Row[] {
+    const base = dragPreviewShortcuts ?? mumbleShortcuts;
+    const tree = buildTree(base);
+    const rows: Row[] = [];
+    // sort hosts alphabetically
+    tree.children.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    for (const host of tree.children) {
+      pushVisibleRows(host, 0, rows);
+    }
+    return rows;
+  }
+
+  function toggle(path: string) {
+    expandedPaths[path] = !isExpanded(path);
+  }
 </script>
 
-<div class="flex flex-col gap-2 w-[500px]">
+<div class="grid gap-1 w-full grid-cols-4">
   {#if shortcutState.loading}
     <div class="flex justify-center items-center h-full">
       <Loader2Icon class="animate-spin" />
     </div>
   {/if}
-  {#each (dragPreviewShortcuts ?? mumbleShortcuts) as mumbleShortcut, index (mumbleShortcut.id)}
-    <div
-      class="grid grid-buttons gap-2"
-      draggable="true"
-      ondragstart={(e) => { handleDragStart(index, e); }}
-      ondragover={(e) => { handleDragOver(mumbleShortcut.id, e); }}
-      ondrop={(e) => { handleDrop(mumbleShortcut.id, e); }}
-      ondragend={handleDragEnd}
-      aria-label="Drag to reorder"
-      aria-roledescription="Mumble shortcut"
-      role="listitem"
-      class:opacity-50={draggedId === mumbleShortcut.id}
-    >
-      <Button variant="outline" onclick={() => {openMumbleShortcut(mumbleShortcut)}} class="grid-cols-1 justify-start self-start w-full">{mumbleShortcut.shortcutName}</Button>
-      <Button variant="outline" onclick={() => {openMumbleShortcutEditSheet(mumbleShortcut)}} class="grid-cols-1 justify-end self-end w-fit">
-        <PencilIcon />
-      </Button>
-      <Button variant="outline" onclick={() => {removeMumbleShortcut(mumbleShortcut)}} class="grid-cols-1 justify-end self-end w-fit">
-        <TrashIcon />
-      </Button>
-    </div>
+  {#each getVisibleRows() as row (row.kind === 'leaf' ? row.shortcut.id : row.path)}
+    {#if row.kind === 'group'}
+      <button type="button" aria-expanded={isExpanded(row.path)} class="flex items-center gap-2 select-none cursor-pointer px-1 py-1 rounded-md hover:bg-accent" style={`grid-column: 1 / -1; padding-left: ${row.depth * 16}px;`} onclick={() => toggle(row.path)}>
+        {#if isExpanded(row.path)}
+          <ChevronDownIcon />
+        {:else}
+          <ChevronRightIcon />
+        {/if}
+        <span class="font-semibold">{row.name}</span>
+      </button>
+    {:else}
+      <div
+        class="grid grid-buttons gap-1"
+        style={`padding-left: ${row.depth * 2}px;`}
+        draggable="true"
+        ondragstart={(e) => { handleDragStart((dragPreviewShortcuts ?? mumbleShortcuts).findIndex((x) => x.id === row.shortcut.id), e); }}
+        ondragover={(e) => { handleDragOver(row.shortcut.id, e); }}
+        ondrop={(e) => { handleDrop(row.shortcut.id, e); }}
+        ondragend={handleDragEnd}
+        aria-label="Drag to reorder"
+        aria-roledescription="Mumble shortcut"
+        role="listitem"
+        class:opacity-50={draggedId === row.shortcut.id}
+      >
+        <Button variant="outline" onclick={() => {openMumbleShortcut(row.shortcut)}} class="grid-cols-1 justify-start self-start w-full overflow-hidden text-ellipsis">{row.label}</Button>
+        <Button variant="outline" onclick={() => {openMumbleShortcutEditSheet(row.shortcut)}} class="grid-cols-1 justify-end self-end w-fit">
+          <PencilIcon />
+        </Button>
+        <Button variant="outline" onclick={() => {removeMumbleShortcut(row.shortcut)}} class="grid-cols-1 justify-end self-end w-fit">
+          <TrashIcon />
+        </Button>
+      </div>
+    {/if}
   {/each}
 </div>
 
@@ -193,6 +321,7 @@
     <div class="flex flex-col gap-2 p-4">
       <Input type="text" placeholder="Shortcut Name" bind:value={mumbleShortcut.shortcutName} />
       <Input type="text" placeholder="Mumble URL" bind:value={mumbleShortcut.mumbleUrl} />
+      <Input type="number" placeholder="Order" bind:value={mumbleShortcut.order} />
     </div>
     <Sheet.Footer class="grid grid-cols-2 gap-2">
       <Button variant="outline" onclick={() => {update(mumbleShortcut)}} class="grid-cols-1 w-full">Update</Button>
