@@ -15,7 +15,6 @@
 
     try {
       const json = await importJson<any[]>(fileInput.files[0] as File);
-      console.log(json);
       
       if (!Array.isArray(json)) {
         toast.error("Invalid file format: expected an array");
