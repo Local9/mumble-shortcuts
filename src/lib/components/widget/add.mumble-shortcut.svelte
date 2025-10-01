@@ -2,7 +2,8 @@
   import { Button } from "$lib/components/ui/button/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import { setItem, getItem } from "$lib/services/local-storage.service.js";
-
+  import { toast } from "svelte-sonner";
+  
   let shortcutName = $state("");
   let mumbleUrl = $state("");
   let nameInput = $state<HTMLInputElement | null>(null);
@@ -24,6 +25,8 @@
     mumbleUrl = "";
 
     nameInput?.focus();
+
+    toast.success("Mumble shortcut added successfully");
   }
 </script> 
 

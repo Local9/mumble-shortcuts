@@ -6,7 +6,8 @@
   import * as Sheet from "$lib/components/ui/sheet/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import PencilIcon from "@lucide/svelte/icons/pencil";
-
+  import { toast } from "svelte-sonner";
+  
   let mumbleShortcut = $state<any>(null);
   let mumbleShortcuts = $state(JSON.parse(getItem("mumbleShortcuts") || "[]"));
   let draggedIndex = $state<number | null>(null);
@@ -56,6 +57,8 @@
   function removeMumbleShortcut(mumbleShortcut: any) {
     mumbleShortcuts = mumbleShortcuts.filter((shortcut: any) => shortcut.id !== mumbleShortcut.id);
     setItem("mumbleShortcuts", JSON.stringify(mumbleShortcuts));
+
+    toast.success("Mumble shortcut removed successfully");
   }
 
   // list needs to update when a new shortcut is added or removed

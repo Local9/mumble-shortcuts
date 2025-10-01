@@ -3,6 +3,8 @@
   import { Input } from "$lib/components/ui/input/index.js";
   import { importJson } from "$lib/services/json.service.js";
   import { setItem, getItem } from "$lib/services/local-storage.service.js";
+  import { toast } from "svelte-sonner";
+  
   let fileInput = $state<HTMLInputElement | null>(null);
 
   function importMumbleShortcuts() {
@@ -25,6 +27,8 @@
       index === self.findIndex((t: any) => t.id === shortcut.id)
     );
     setItem("mumbleShortcuts", JSON.stringify(uniqueMumbleShortcuts));
+
+    toast.success("Mumble shortcuts imported successfully");
   }
 </script>
 

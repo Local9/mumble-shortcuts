@@ -3,11 +3,14 @@
   import ListMumbleShortcut from "./list.mumble-shortcut.svelte";
   import ImportMumbleShortcut from "./import.mumble-shortcut.svelte";
   import ExportMumbleShortcut from "./export.mumble-shortcut.svelte";
+  import { Separator } from "$lib/components/ui/separator/index.js";
 </script>
 
 <div class="flex flex-col gap-2">
   <AddMumbleShortcut />
   <ListMumbleShortcut />
-  <ImportMumbleShortcut />
+  <Separator />
   <ExportMumbleShortcut />
+  <Separator />
+  <ImportMumbleShortcut />
 </div>

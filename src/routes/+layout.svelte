@@ -3,6 +3,7 @@
 	import favicon from '$lib/assets/favicon.svg';
 	import { ModeWatcher } from 'mode-watcher';
 	import ThemeSwitcher from '$lib/components/ui/theme-switcher/theme-switcher.svelte';
+	import { Toaster } from 'svelte-sonner';
 
 	let { children } = $props();
 </script>
@@ -12,6 +13,7 @@
 </svelte:head>
 
 <ModeWatcher />
+<Toaster />
 
 <div class="flex justify-end p-4">
 	<ThemeSwitcher />	
