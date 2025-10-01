@@ -8,11 +8,25 @@ export function exportJson(filename: string, data: unknown): void {
   a.click();
 }
 
-export function importJson(file: File): void {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const json = JSON.parse(e.target?.result as string);
-    return json;
-  };
-  reader.readAsText(file);
-}
+// import json from a file and return the json object
+export function importJson<T = unknown>(file: File): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      try {
+        const text = reader.result as string;
+        const parsed = JSON.parse(text) as T;
+        resolve(parsed);
+      } catch (error) {
+        reject(error instanceof Error ? error : new Error('Failed to parse JSON'));
+      }
+    };
+
+    reader.onerror = () => {
+      reject(reader.error ?? new Error('Failed to read file'));
+    };
+
+    reader.readAsText(file);
+  });
+} 

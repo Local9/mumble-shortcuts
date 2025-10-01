@@ -13,4 +13,4 @@
   }
 </script>
 
-<Button onclick={exportMumbleShortcuts} class="w-full" variant="outline">Export</Button>
+<Button onclick={exportMumbleShortcuts} class="w-full cursor-pointer" variant="outline">Export</Button>
