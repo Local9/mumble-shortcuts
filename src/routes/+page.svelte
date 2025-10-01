@@ -1,5 +1,5 @@
 <script lang="ts">
-  import MumbleShortcut from "$lib/components/widget/mumble-shortcut.svelte";
+  import MumbleShortcut from "$lib/components/widget/mumble-shortcut/mumble-shortcut.svelte";
 </script>
 
 <div class="flex flex-col gap-2"> 

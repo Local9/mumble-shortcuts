@@ -4,6 +4,7 @@
 	import { ModeWatcher } from 'mode-watcher';
 	import ThemeSwitcher from '$lib/components/ui/theme-switcher/theme-switcher.svelte';
 	import { Toaster } from 'svelte-sonner';
+	import ToolsSheet from '$lib/components/widget/tools.sheet.svelte';
 
 	let { children } = $props();
 </script>
@@ -16,6 +17,7 @@
 <Toaster />
 
 <div class="flex justify-end p-4">
+	<ToolsSheet />
 	<ThemeSwitcher />	
 </div>
 

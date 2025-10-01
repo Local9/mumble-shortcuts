@@ -9,8 +9,4 @@
 <div class="flex flex-col gap-2">
   <AddMumbleShortcut />
   <ListMumbleShortcut />
-  <Separator />
-  <ExportMumbleShortcut />
-  <Separator />
-  <ImportMumbleShortcut />
 </div>
