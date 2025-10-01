@@ -2,10 +2,9 @@
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { Input } from '$lib/components/ui/input/index.js';
 	import { importJson } from '$lib/services/json.service.js';
-	import { setItem } from '$lib/services/local-storage.service.js';
 	import { toast } from 'svelte-sonner';
 	import FileUpIcon from "@lucide/svelte/icons/file-up";
-	import { getShortcuts } from '$lib/states/mumble-shortcut-state.svelte';
+	import { getShortcuts, updateShortcuts } from '$lib/states/mumble-shortcut-state.svelte';
 	import type { Shortcut } from '$lib/types/shortcut.type.js';
 
 	let fileInput = $state<HTMLInputElement | null>(null);
@@ -46,7 +45,8 @@
 				(shortcut: Shortcut, index: number, self: Shortcut[]) =>
 					index === self.findIndex((t: Shortcut) => t.id === shortcut.id)
 			);
-			setItem('mumbleShortcuts', JSON.stringify(uniqueMumbleShortcuts));
+			
+			updateShortcuts(uniqueMumbleShortcuts as Shortcut[]);
 
 			toast.success('Mumble shortcuts imported and merged successfully');
 
