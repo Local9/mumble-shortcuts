@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import favicon from '$lib/assets/favicon.svg';
-	import { ModeWatcher } from 'mode-watcher';
+	import { ModeWatcher, mode } from 'mode-watcher';
 	import ThemeSwitcher from '$lib/components/ui/theme-switcher/theme-switcher.svelte';
 	import { Toaster } from 'svelte-sonner';
 	import ToolsSheet from '$lib/components/widget/tools.sheet.svelte';
@@ -14,7 +14,7 @@
 </svelte:head>
 
 <ModeWatcher />
-<Toaster />
+<Toaster theme={mode.current} />
 
 <div class="flex justify-end p-4">
 	<ToolsSheet />
