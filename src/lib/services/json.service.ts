@@ -1,0 +1,18 @@
+export function exportJson(filename: string, data: unknown): void {
+  const json = JSON.stringify(data);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${filename}.json`;
+  a.click();
+}
+
+export function importJson(file: File): void {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const json = JSON.parse(e.target?.result as string);
+    return json;
+  };
+  reader.readAsText(file);
+}

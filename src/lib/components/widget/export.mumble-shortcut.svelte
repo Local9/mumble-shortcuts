@@ -1,6 +1,6 @@
 <script lang="ts">
   import { Button } from "$lib/components/ui/button/index.js";
-  import { exportJson } from "$lib/services/export-json.service.js";
+  import { exportJson } from "$lib/services/json.service.js";
   import { getItem } from "$lib/services/local-storage.service.js";
 
   let filename = $state("mumble-shortcuts");
