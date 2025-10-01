@@ -354,7 +354,7 @@
   }
 </style>
 
-<Sheet.Root open={open}>
+<Sheet.Root bind:open={open}>
   <Sheet.Content>
     <Sheet.Header>
       <Sheet.Title>Update Shortcut</Sheet.Title>
