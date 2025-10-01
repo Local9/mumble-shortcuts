@@ -39,7 +39,11 @@
 				}
 			})();
 
-			const mergedMumbleShortcuts = [...existingMumbleShortcuts, ...(json as Shortcut[])];
+			// compare the mumble urls of the existing shortcuts with the new ones
+			const existingMumbleShortcutsByUrl = existingMumbleShortcuts.filter((shortcut: Shortcut) => json.some((newShortcut: Shortcut) => newShortcut.mumbleUrl === shortcut.mumbleUrl));
+			const newMumbleShortcutsByUrl = json.filter((newShortcut: Shortcut) => !existingMumbleShortcutsByUrl.some((existingShortcut: Shortcut) => existingShortcut.mumbleUrl === newShortcut.mumbleUrl));
+
+			const mergedMumbleShortcuts = [...existingMumbleShortcutsByUrl, ...newMumbleShortcutsByUrl];
 			// if there are duplicates we can update them by id
 			const uniqueMumbleShortcuts = mergedMumbleShortcuts.filter(
 				(shortcut: Shortcut, index: number, self: Shortcut[]) =>
