@@ -137,7 +137,7 @@
   }
 </script>
 
-<div class="flex flex-col gap-2">
+<div class="flex flex-col gap-2 w-[500px]">
   {#each (dragPreviewShortcuts ?? mumbleShortcuts) as mumbleShortcut, index (mumbleShortcut.id)}
     <div
       class="grid grid-buttons gap-2"

@@ -5,7 +5,9 @@
 	import ThemeSwitcher from '$lib/components/ui/theme-switcher/theme-switcher.svelte';
 	import { Toaster } from 'svelte-sonner';
 	import ToolsSheet from '$lib/components/widget/tools.sheet.svelte';
-
+	import { Separator } from '$lib/components/ui/separator/index.js';
+	import AddMumbleShortcut from '$lib/components/widget/mumble-shortcut/add.mumble-shortcut.svelte';
+	
 	let { children } = $props();
 </script>
 
@@ -16,16 +18,19 @@
 <ModeWatcher />
 <Toaster theme={mode.current} />
 
-<div class="flex justify-end p-4">
-	<ToolsSheet />
-	<ThemeSwitcher />	
-</div>
-
-<div class="flex flex-col gap-2 justify-center p-4 items-center">
-	<h1 class="text-2xl font-bold">Mumble Shortcuts</h1>
-	<p class="text-sm text-muted-foreground w-[500px]">Add your mumble shortcuts to easily access them, you can export and import your shortcuts to share them with others and drag and drop the shortcuts to reorder them.</p>
-	<div class="flex flex-col gap-2 w-[500px]">
-		{@render children?.()}
+<div class="w-full p-4 gap-2 flex justify-between">
+	<div class="flex justify-start">
+		<span class="text-2xl font-bold">Mumble Shortcuts</span>
+	</div>
+	<Separator orientation="vertical" />
+	<AddMumbleShortcut />
+	<Separator orientation="vertical" />
+	<div class="flex justify-end">
+		<ToolsSheet />
+		<ThemeSwitcher />
 	</div>
 </div>
 
+<div class="flex flex-col items-center justify-center gap-2 p-4">
+	{@render children?.()}
+</div>
