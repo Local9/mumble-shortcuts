@@ -1,17 +1,17 @@
 <script lang="ts">
-  import { getItem } from "$lib/services/local-storage.service.js";
   import { Button } from "$lib/components/ui/button/index.js";
-  import { setItem } from "$lib/services/local-storage.service.js";
   import TrashIcon from "@lucide/svelte/icons/trash";
   import * as Sheet from "$lib/components/ui/sheet/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import PencilIcon from "@lucide/svelte/icons/pencil";
   import { toast } from "svelte-sonner";
-  
-  let mumbleShortcut = $state<any>(null);
-  let mumbleShortcuts = $state(JSON.parse(getItem("mumbleShortcuts") || "[]"));
+  import { getShortcuts, updateShortcuts } from "$lib/states/mumble-shortcut-state.svelte";
+  import type { Shortcut } from "$lib/types/shortcut.type.js";
+
+  let mumbleShortcut = $state<Shortcut>({} as Shortcut);
+  let mumbleShortcuts = $state(getShortcuts());
   let draggedId = $state<string | null>(null);
-  let dragPreviewShortcuts = $state<any[] | null>(null);
+  let dragPreviewShortcuts = $state<Shortcut[] | null>(null);
   let open = $state(false);
 
   function moveItem<T>(array: T[], fromIndex: number, toIndex: number): T[] {
@@ -40,15 +40,15 @@
     const isAfter = event.clientY - rect.top > rect.height / 2;
 
     const base = dragPreviewShortcuts ?? mumbleShortcuts;
-    const fromIndex = base.findIndex((x: any) => x.id === draggedId);
-    const hoverIndex = base.findIndex((x: any) => x.id === hoveredId);
+    const fromIndex = base.findIndex((x: Shortcut) => x.id === draggedId);
+    const hoverIndex = base.findIndex((x: Shortcut) => x.id === hoveredId);
     if (fromIndex === -1 || hoverIndex === -1) return;
 
     let toIndex = hoverIndex + (isAfter ? 1 : 0);
     toIndex = Math.max(0, Math.min(base.length, toIndex));
 
     const next = moveItem(base, fromIndex, toIndex > base.length - 1 ? base.length - 1 : toIndex);
-    dragPreviewShortcuts = next;
+    dragPreviewShortcuts = next as Shortcut[];
   }
 
   function handleDrop(hoveredId: string, event: DragEvent) {
@@ -56,7 +56,7 @@
 
     if (dragPreviewShortcuts) {
       mumbleShortcuts = dragPreviewShortcuts;
-      setItem("mumbleShortcuts", JSON.stringify(mumbleShortcuts));
+      updateShortcuts(mumbleShortcuts as Shortcut[]);
       dragPreviewShortcuts = null;
       draggedId = null;
       return;
@@ -73,8 +73,8 @@
     const rect = target.getBoundingClientRect();
     const isAfter = event.clientY - rect.top > rect.height / 2;
 
-    const fromIndex = mumbleShortcuts.findIndex((x: any) => x.id === id);
-    const hoverIndex = mumbleShortcuts.findIndex((x: any) => x.id === hoveredId);
+    const fromIndex = mumbleShortcuts.findIndex((x: Shortcut) => x.id === id);
+    const hoverIndex = mumbleShortcuts.findIndex((x: Shortcut) => x.id === hoveredId);
     if (fromIndex === -1 || hoverIndex === -1) {
       draggedId = null;
       return;
@@ -84,7 +84,7 @@
     toIndex = Math.max(0, Math.min(mumbleShortcuts.length, toIndex));
 
     mumbleShortcuts = moveItem(mumbleShortcuts, fromIndex, toIndex > mumbleShortcuts.length - 1 ? mumbleShortcuts.length - 1 : toIndex);
-    setItem("mumbleShortcuts", JSON.stringify(mumbleShortcuts));
+    updateShortcuts(mumbleShortcuts as Shortcut[]);
     draggedId = null;
   }
 
@@ -93,7 +93,7 @@
     dragPreviewShortcuts = null;
   }
 
-  function openMumbleShortcut(mumbleShortcut: any) {
+  function openMumbleShortcut(mumbleShortcut: Shortcut) {
     // mumble urls start with mumble:// so they do not need to open a new tab
     if (mumbleShortcut.mumbleUrl.startsWith("mumble://")) {
       window.location.href = mumbleShortcut.mumbleUrl;
@@ -102,27 +102,19 @@
     }
   }
 
-  function removeMumbleShortcut(mumbleShortcut: any) {
-    mumbleShortcuts = mumbleShortcuts.filter((shortcut: any) => shortcut.id !== mumbleShortcut.id);
-    setItem("mumbleShortcuts", JSON.stringify(mumbleShortcuts));
+  function removeMumbleShortcut(mumbleShortcut: Shortcut) {
+    mumbleShortcuts = mumbleShortcuts.filter((shortcut: Shortcut) => shortcut.id !== mumbleShortcut.id);
+    updateShortcuts(mumbleShortcuts as Shortcut[]);
 
     toast.success("Mumble shortcut removed successfully");
   }
 
-  // list needs to update when a new shortcut is added or removed
-  // we should poll for changes every 1000ms
-  $effect(() => {
-    setInterval(() => {
-      mumbleShortcuts = JSON.parse(getItem("mumbleShortcuts") || "[]");
-    }, 1000);
-  });
-
-  function openMumbleShortcutEditSheet(shortcut: any) {
+  function openMumbleShortcutEditSheet(shortcut: Shortcut) {
     mumbleShortcut = shortcut;
     open = true;
   }
 
-  function updateMumbleShortcut(mumbleShortcut: any) {
+  function update(mumbleShortcut: Shortcut) {
     if (mumbleShortcut.shortcutName === "" || mumbleShortcut.mumbleUrl === "") {
       return;
     }
@@ -131,8 +123,8 @@
       return;
     }
 
-    mumbleShortcuts = mumbleShortcuts.map((shortcut: any) => shortcut.id === mumbleShortcut.id ? mumbleShortcut : shortcut);
-    setItem("mumbleShortcuts", JSON.stringify(mumbleShortcuts));
+    mumbleShortcuts = mumbleShortcuts.map((shortcut: Shortcut) => shortcut.id === mumbleShortcut.id ? mumbleShortcut : shortcut);
+    updateShortcuts(mumbleShortcuts as Shortcut[]);
     open = false;
   }
 </script>
@@ -181,7 +173,7 @@
       <Input type="text" placeholder="Mumble URL" bind:value={mumbleShortcut.mumbleUrl} />
     </div>
     <Sheet.Footer class="grid grid-cols-2 gap-2">
-      <Button variant="outline" onclick={() => {updateMumbleShortcut(mumbleShortcut)}} class="grid-cols-1 w-full">Update</Button>
+      <Button variant="outline" onclick={() => {update(mumbleShortcut)}} class="grid-cols-1 w-full">Update</Button>
       <Button variant="outline" onclick={() => {open = false}} class="grid-cols-1 w-full">Cancel</Button>
     </Sheet.Footer>
   </Sheet.Content>
