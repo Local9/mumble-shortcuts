@@ -4,11 +4,15 @@
   import ImportMumbleShortcut from "./mumble-shortcut/import.mumble-shortcut.svelte";
   import { Separator } from "$lib/components/ui/separator/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
+  import SettingsIcon from "@lucide/svelte/icons/settings";
 </script>
 
 <Sheet.Root>
   <Sheet.Trigger>
-    <Button variant="outline" class="mr-2">Tools</Button>
+    <Button variant="outline" class="mr-2">
+      <SettingsIcon />
+      Tools
+    </Button>
   </Sheet.Trigger>
   <Sheet.Content>
     <Sheet.Header>

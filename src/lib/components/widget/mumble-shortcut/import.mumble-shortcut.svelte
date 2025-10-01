@@ -4,6 +4,7 @@
 	import { importJson } from '$lib/services/json.service.js';
 	import { setItem, getItem } from '$lib/services/local-storage.service.js';
 	import { toast } from 'svelte-sonner';
+	import FileUpIcon from "@lucide/svelte/icons/file-up";
 
 	let fileInput = $state<HTMLInputElement | null>(null);
 
@@ -57,6 +58,8 @@
 </script>
 
 <Button onclick={importMumbleShortcuts} class="w-full cursor-pointer" variant="outline"
-	>Import</Button
+	>
+	<FileUpIcon />
+	Import</Button
 >
 <Input type="file" bind:ref={fileInput} class="w-full cursor-pointer" accept=".json" />
