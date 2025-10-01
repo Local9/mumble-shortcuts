@@ -12,6 +12,7 @@
   import { onDestroy } from "svelte";
   import ChevronRightIcon from "@lucide/svelte/icons/chevron-right";
   import ChevronDownIcon from "@lucide/svelte/icons/chevron-down";
+  import { getItem, setItem } from "$lib/services/local-storage.service";
 
   let mumbleShortcut = $state<Shortcut>({} as Shortcut);
   let mumbleShortcuts = $state<Shortcut[]>(shortcutState.shortcuts);
@@ -20,15 +21,44 @@
   let dragPreviewShortcuts = $state<Shortcut[] | null>(null);
   let open = $state(false);
   let expandedPaths = $state<Record<string, boolean>>({});
+  let hostBgColors = $state<Record<string, string>>({});
 
   // Initialize once on mount to avoid reactive update loops
   onMount(() => {
     getShortcuts();
+    const stored = getItem("mumbleHostBgColors");
+    if (stored) {
+      try { hostBgColors = JSON.parse(stored) as Record<string, string>; } catch {}
+    }
   });
 
   $effect(() => {
     mumbleShortcuts = shortcutState.shortcuts;
   });
+
+  // Ensure new hosts get an entry so users can set a color
+  $effect(() => {
+    const next = { ...hostBgColors } as Record<string, string>;
+    let changed = false;
+    for (const s of mumbleShortcuts) {
+      const parsed = parseMumbleUrl(s.mumbleUrl);
+      if (!parsed) continue;
+      const host = parsed.host;
+      if (host && next[host] === undefined) {
+        next[host] = "";
+        changed = true;
+      }
+    }
+    if (changed) {
+      hostBgColors = next;
+      setItem("mumbleHostBgColors", JSON.stringify(hostBgColors));
+    }
+  });
+
+  function setHostColor(host: string, color: string) {
+    hostBgColors = { ...hostBgColors, [host]: color };
+    setItem("mumbleHostBgColors", JSON.stringify(hostBgColors));
+  }
 
   onDestroy(() => {
     shortcutState.shortcuts = shortcutState.shortcuts;
@@ -270,14 +300,28 @@
   {/if}
   {#each getVisibleRows() as row (row.kind === 'leaf' ? row.shortcut.id : row.path)}
     {#if row.kind === 'group'}
-      <button type="button" aria-expanded={isExpanded(row.path)} class="flex items-center gap-2 select-none cursor-pointer px-1 py-1 rounded-md hover:bg-accent" style={`grid-column: 1 / -1; padding-left: ${row.depth * 16}px;`} onclick={() => toggle(row.path)}>
-        {#if isExpanded(row.path)}
-          <ChevronDownIcon />
-        {:else}
-          <ChevronRightIcon />
-        {/if}
-        <span class="font-semibold">{row.name}</span>
-      </button>
+      {#if row.depth === 0}
+        <div class="flex items-center justify-between px-1 py-1 rounded-md" style={`grid-column: 1 / -1; padding-left: ${row.depth * 2}px; background: ${hostBgColors[row.name] ?? ''};`}>
+          <button type="button" aria-expanded={isExpanded(row.path)} class="flex items-center gap-2 select-none cursor-pointer hover:bg-accent/50 px-1 py-1 rounded-md" onclick={() => toggle(row.path)}>
+            {#if isExpanded(row.path)}
+              <ChevronDownIcon />
+            {:else}
+              <ChevronRightIcon />
+            {/if}
+            <span class="font-semibold">{row.name}</span>
+          </button>
+          <input type="color" aria-label={`Set background color for ${row.name}`} value={hostBgColors[row.name] ?? "#000000"} oninput={(e) => setHostColor(row.name, (e.target as HTMLInputElement).value)} />
+        </div>
+      {:else}
+        <button type="button" aria-expanded={isExpanded(row.path)} class="flex items-center gap-2 select-none cursor-pointer px-1 py-1 rounded-md hover:bg-accent" style={`grid-column: 1 / -1; padding-left: ${row.depth * 16}px;`} onclick={() => toggle(row.path)}>
+          {#if isExpanded(row.path)}
+            <ChevronDownIcon />
+          {:else}
+            <ChevronRightIcon />
+          {/if}
+          <span class="font-semibold">{row.name}</span>
+        </button>
+      {/if}
     {:else}
       <div
         class="grid grid-buttons gap-1"
