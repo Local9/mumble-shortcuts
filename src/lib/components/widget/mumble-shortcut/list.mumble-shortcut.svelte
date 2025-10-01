@@ -5,14 +5,31 @@
   import { Input } from "$lib/components/ui/input/index.js";
   import PencilIcon from "@lucide/svelte/icons/pencil";
   import { toast } from "svelte-sonner";
-  import { getShortcuts, updateShortcuts } from "$lib/states/mumble-shortcut-state.svelte";
+  import { getShortcuts, updateShortcuts, shortcutState } from "$lib/states/mumble-shortcut-state.svelte";
   import type { Shortcut } from "$lib/types/shortcut.type.js";
+  import Loader2Icon from "@lucide/svelte/icons/loader-2";
+  import { onMount } from "svelte";
+  import { onDestroy } from "svelte";
 
   let mumbleShortcut = $state<Shortcut>({} as Shortcut);
-  let mumbleShortcuts = $state(getShortcuts());
+  let mumbleShortcuts = $state<Shortcut[]>(shortcutState.shortcuts);
+  let loading = $state(shortcutState.loading);
   let draggedId = $state<string | null>(null);
   let dragPreviewShortcuts = $state<Shortcut[] | null>(null);
   let open = $state(false);
+
+  // Initialize once on mount to avoid reactive update loops
+  onMount(() => {
+    getShortcuts();
+  });
+
+  $effect(() => {
+    mumbleShortcuts = shortcutState.shortcuts;
+  });
+
+  onDestroy(() => {
+    shortcutState.shortcuts = shortcutState.shortcuts;
+  });
 
   function moveItem<T>(array: T[], fromIndex: number, toIndex: number): T[] {
     const copy = array.slice();
@@ -130,6 +147,11 @@
 </script>
 
 <div class="flex flex-col gap-2 w-[500px]">
+  {#if shortcutState.loading}
+    <div class="flex justify-center items-center h-full">
+      <Loader2Icon class="animate-spin" />
+    </div>
+  {/if}
   {#each (dragPreviewShortcuts ?? mumbleShortcuts) as mumbleShortcut, index (mumbleShortcut.id)}
     <div
       class="grid grid-buttons gap-2"

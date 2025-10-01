@@ -20,27 +20,29 @@
         return;
       }
 
-      // we want the mumble channel name from the url
-      // url looks like this: mumble://channel/channel-name?key=value
-      // we want the channel-name
-      const mumbleChannelName = text.split('/').pop()?.split('?')[0];
+      const splitText = text.split('/');
+      const mumbleChannel = splitText.slice(1, -1).pop();
+      const mumbleChannelName = splitText.pop()?.split('?')[0];
+
+      if (!mumbleChannel) {
+        return;
+      }
       if (!mumbleChannelName) {
         return;
       }
-
-      // we need to format the mumble channel name as its HTML encoded
+      
+      // we need to format the mumble channel names as its HTML encoded
+      const formattedMumbleChannel = decodeURIComponent(mumbleChannel);
       const formattedMumbleChannelName = decodeURIComponent(mumbleChannelName);
 
       const mumbleShortcut = {
         id: crypto.randomUUID(),
-        shortcutName: formattedMumbleChannelName,
+        shortcutName: `${formattedMumbleChannel} - ${formattedMumbleChannelName}`,
         mumbleUrl: text
       };
 
       addShortcut(mumbleShortcut);
       toast.success("Mumble shortcut added successfully");
-
-      console.log('Pasted via Ctrl+V:', text);
     } catch (err) {
       console.error('Paste handler error:', err);
     }
